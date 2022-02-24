@@ -1,0 +1,48 @@
+package com.juke.entity;
+
+import java.time.LocalDateTime;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Setter
+@Getter
+@NoArgsConstructor
+@Entity
+@Table(name = "players")
+public class PlayerEntity extends BaseEntity {
+
+  @Builder
+  public PlayerEntity(Long id, LocalDateTime createdAt, LocalDateTime updatedAt, Long telegramId,
+      String userName, String phone, Long javaScore, Long pythonScore, Long dataScore) {
+    super(id, createdAt, updatedAt);
+    this.telegramId = telegramId;
+    this.userName = userName;
+    this.phone = phone;
+    this.javaScore = javaScore;
+    this.pythonScore = pythonScore;
+    this.dataScore = dataScore;
+  }
+
+  @Column(name = "telegram_id", nullable = false)
+  private Long telegramId;
+
+  @Column(name = "user_name")
+  private String userName;
+
+  @Column(name = "phone")
+  private String phone;
+
+  @Column(name = "java_score")
+  private Long javaScore;
+
+  @Column(name = "python_score")
+  private Long pythonScore;
+
+  @Column(name = "data_score")
+  private Long dataScore;
+}
