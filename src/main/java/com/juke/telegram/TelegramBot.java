@@ -1,5 +1,16 @@
 package com.juke.telegram;
 
+import static com.juke.telegram.VarConstant.ABOUT;
+import static com.juke.telegram.VarConstant.ACCEPT;
+import static com.juke.telegram.VarConstant.BACK;
+import static com.juke.telegram.VarConstant.BOT_COMMAND;
+import static com.juke.telegram.VarConstant.DATA;
+import static com.juke.telegram.VarConstant.DENIED;
+import static com.juke.telegram.VarConstant.GO;
+import static com.juke.telegram.VarConstant.JAVA;
+import static com.juke.telegram.VarConstant.LEADER;
+import static com.juke.telegram.VarConstant.TASK;
+
 import com.juke.dto.PlayerDto;
 import com.juke.service.PlayerServiceImpl;
 import java.util.List;
@@ -10,7 +21,6 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
-import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Contact;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.MessageEntity;
@@ -23,10 +33,10 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 
 @RequiredArgsConstructor
 @Component
-public class BotEngine extends TelegramLongPollingBot {
+public class TelegramBot extends TelegramLongPollingBot {
 
-  private static final String TOKEN = "5183559762:AAHUdtOqdR_BQNfJynVaAjClGhbiDCL5HE4";
-  private static final String BOT_USERNAME = "jukeBot";
+  private static final String TOKEN = System.getenv("TOKEN");
+  private static final String BOT_USERNAME = System.getenv("BOT_USERNAME");
 
   private final PlayerServiceImpl service;
 
@@ -40,47 +50,38 @@ public class BotEngine extends TelegramLongPollingBot {
     return TOKEN;
   }
 
-
-  @SneakyThrows
   @Override
   public void onUpdateReceived(Update update) {
 
     if (update.hasMessage()) {
-
-      if (update.getMessage().getFrom().getIsBot()) {
-        return;
-      }
-
-      Message message = update.getMessage();
-      boolean isRegisteredPerson = service.hasTelegramId(message.getChatId());
-
-      if (message.hasText()) {
-        if(message.getText().equals("❌ Отклонить")) {
-          executeSendMessage(
-              message.getChatId().toString(),
-              "К сожалению, без согласия на обработку персональных "
-                  + "данных, вы не сможете пользоваться ботом."
-          );
-          return;
-        }
-      }
-
-      if (!isRegisteredPerson && !message.hasContact()) {
-        dataCollectionAgreement(message);
-        return;
-      }
-
-      if (!isRegisteredPerson && message.hasContact()) {
-        registration(message);
-        return;
-      }
-
-      handleTextMessage(message);
+      catchMessage(update.getMessage());
     }
 
     if (update.hasCallbackQuery()) {
-      handleCallbackQuery(update.getCallbackQuery());
+      catchCallbackQuery(update.getCallbackQuery());
     }
+  }
+
+  private void catchMessage(Message message) {
+
+    if (message.getFrom().getIsBot()) {
+      executeSendMessage(message.getChatId().toString(),
+          "Бот не реагирует на сообщения от других ботов!");
+    }
+
+    boolean isRegisteredPerson = service.hasTelegramId(message.getChatId());
+
+    if (!isRegisteredPerson && !message.hasContact()) {
+      dataCollectionAgreement(message);
+      return;
+    }
+
+    if (!isRegisteredPerson && message.hasContact()) {
+      registration(message);
+      return;
+    }
+
+    handleTextMessage(message);
   }
 
   private void dataCollectionAgreement(Message message) {
@@ -89,23 +90,26 @@ public class BotEngine extends TelegramLongPollingBot {
       return;
     }
 
+    if (message.getText().equals(DENIED)) {
+      executeSendMessage(message.getChatId().toString(),
+          "К сожалению, без согласия на обработку персональных "
+              + "данных, вы не сможете пользоваться ботом.");
+      return;
+    }
+
     KeyboardRow firstRow = new KeyboardRow();
-    firstRow.add(KeyboardButton.builder().text("✅ Предоставить").requestContact(true).build());
-    firstRow.add(KeyboardButton.builder().text("❌ Отклонить").build());
+    firstRow.add(getButton(ACCEPT, true));
+    firstRow.add(getButton(DENIED, false));
 
     List<KeyboardRow> keyboard = List.of(firstRow);
 
     executeSendMessage(message.getChatId().toString(),
         "Пожалуйста, предоставьте доступ к Вашему контакту:",
-        ReplyKeyboardMarkup.builder()
-            .selective(true)
-            .resizeKeyboard(true)
-            .oneTimeKeyboard(true)
-            .keyboard(keyboard)
-            .build());
+        getReplyKeyboardMarkup(true, true, true, keyboard));
   }
 
   private void registration(Message message) {
+
     Contact contact = message.getContact();
 
     if (service.hasTelegramId(contact.getUserId())) {
@@ -113,11 +117,8 @@ public class BotEngine extends TelegramLongPollingBot {
       return;
     }
 
-    PlayerDto registrationDto = PlayerDto.builder()
-        .telegramId(contact.getUserId())
-        .userName(message.getChat().getUserName())
-        .phone(contact.getPhoneNumber())
-        .build();
+    PlayerDto registrationDto = PlayerDto.builder().telegramId(contact.getUserId())
+        .userName(message.getChat().getUserName()).phone(contact.getPhoneNumber()).build();
 
     service.save(registrationDto);
 
@@ -132,31 +133,51 @@ public class BotEngine extends TelegramLongPollingBot {
       commandMethod(message);
     } else {
       switch (message.getText()) {
-        case "❌ Отклонить":
+        case DENIED:
           executeSendMessage(message.getChatId().toString(),
               "К сожалению, без согласия на обработку персональных данных, "
                   + "вы не сможете пользоваться ботом.");
           break;
 
-        case "\uD83D\uDCCA Task":
+        case TASK:
           taskMethod(message);
           break;
 
-        case "About ❓":
-          //TODO: create aboutMethod();
+        case LEADER:
+          leaderMethod(message);
+          break;
+
+        case ABOUT:
+//          aboutMethod(message);
           break;
       }
     }
   }
 
+  private void leaderMethod(Message message) {
+
+    List<PlayerDto> topPlayerList = service.findAll().stream().sorted((o1, o2) -> {
+      Long x = o1.getJavaScore() + o1.getPythonScore() + o1.getDataScore();
+      Long y = o2.getJavaScore() + o1.getPythonScore() + o1.getDataScore();
+      return y.compareTo(x);
+    }).limit(10).toList();
+
+    for (PlayerDto player : topPlayerList) {
+      executeSendMessage(message.getChatId().toString(),
+          player.getUserName() + " " + (player.getJavaScore() + player.getPythonScore()
+              + player.getDataScore()));
+    }
+  }
+
   private void commandMethod(Message message) {
     Optional<MessageEntity> commandEntity = message.getEntities().stream()
-        .filter(e -> e.getType().equals("bot_command")).findFirst();
+        .filter(e -> e.getType().equals(BOT_COMMAND)).findFirst();
 
     if (commandEntity.isPresent()) {
       String command = message.getText()
           .substring(commandEntity.get().getOffset(), commandEntity.get().getLength());
 
+      //leave switch construction for possible additional commands
       switch (command) {
         case "/start":
           startMethod(message);
@@ -166,11 +187,10 @@ public class BotEngine extends TelegramLongPollingBot {
   }
 
   @SneakyThrows
-  private void handleCallbackQuery(CallbackQuery callbackQuery) {
+  private void catchCallbackQuery(CallbackQuery callbackQuery) {
     Message message = callbackQuery.getMessage();
-    String callBack = callbackQuery.getData();
 
-    switch (callBack) {
+    switch (callbackQuery.getData()) {
 
       case "JAVA":
         //TODO: create javaMethod();
@@ -190,117 +210,69 @@ public class BotEngine extends TelegramLongPollingBot {
       case "BACK":
         startMethod(message);
         break;
-
-      case "PROFILE":
-        profileMethod(message);
-        break;
     }
-  }
-
-  private void menuMethod(Message message) {
-    KeyboardRow firstLine = new KeyboardRow();
-    firstLine.add(Button.TASK.getName());
-    firstLine.add(Button.SETTINGS.getName());
-    firstLine.add(Button.ABOUT.getName());
-
-    List<KeyboardRow> keyboard = List.of(firstLine);
-
-    executeSendMessage(message.getChatId().toString(),
-        "\uD83D\uDCA0 Главное меню:",
-        ReplyKeyboardMarkup.builder()
-            .selective(true)
-            .resizeKeyboard(true)
-            .oneTimeKeyboard(true)
-            .keyboard(keyboard)
-            .build());
   }
 
   @SneakyThrows
   private void taskMethod(Message message) {
     List<List<InlineKeyboardButton>> buttons = List.of(
-        List.of(
-            getInlineButton(Button.JAVA.getName()),
-            getInlineButton(Button.PYTHON.getName()),
-            getInlineButton(Button.DATA.getName())
-        ),
-        List.of(
-            getInlineButton(Button.BACK.getName())
-        )
+        List.of(getInlineButton(JAVA), getInlineButton(GO), getInlineButton(DATA)),
+        List.of(getInlineButton(BACK))
     );
 
-    executeSendMessage(
-        message.getChatId().toString(),
-        "Please, choose your language:",
-        InlineKeyboardMarkup.builder().keyboard(buttons).build()
-    );
+    executeSendMessage(message.getChatId().toString(),
+        "Пожалуйста, выберите свой язык программирования:",
+        InlineKeyboardMarkup.builder().keyboard(buttons).build());
   }
 
   private void startMethod(Message message) {
 
     KeyboardRow firstLine = new KeyboardRow();
 
-    firstLine.add(Button.TASK.getName());
-    firstLine.add(Button.LEADERBOARD.getName());
-    firstLine.add(Button.ABOUT.getName());
+    firstLine.add(TASK);
+    firstLine.add(LEADER);
+    firstLine.add(ABOUT);
 
     List<KeyboardRow> keyboard = List.of(firstLine);
 
     executeSendMessage(message.getChatId().toString(),
         "\uD83D\uDCF1 Добро пожаловать в GiveMeTask бот!",
-        ReplyKeyboardMarkup.builder()
-            .selective(true)
-            .resizeKeyboard(true)
-            .oneTimeKeyboard(true)
-            .keyboard(keyboard)
-            .build());
-  }
-
-  private void profileMethod(Message message) {
-    PlayerDto profileDto = service.findByTelegramId(message.getChat().getId());
-    executeSendMessage(message.getChatId().toString(), profileDto.toString());
+        ReplyKeyboardMarkup.builder().selective(true).resizeKeyboard(true).oneTimeKeyboard(true)
+            .keyboard(keyboard).build());
   }
 
   @SneakyThrows
   private void executeSendMessage(String chatId, String text) {
-    execute(
-        SendMessage.builder()
-            .chatId(chatId)
-            .text(text)
-            .build()
-    );
+    execute(SendMessage.builder().chatId(chatId).text(text).build());
   }
 
   @SneakyThrows
   private void executeSendMessage(String chatId, String text, InlineKeyboardMarkup buttons) {
-    execute(
-        SendMessage.builder()
-            .chatId(chatId)
-            .text(text)
-            .replyMarkup(buttons)
-            .build()
-    );
+    execute(SendMessage.builder().chatId(chatId).text(text).replyMarkup(buttons).build());
   }
 
   @SneakyThrows
   private void executeSendMessage(String chatId, String text, ReplyKeyboardMarkup buttons) {
-    execute(
-        SendMessage.builder()
-            .chatId(chatId)
-            .text(text)
-            .replyMarkup(buttons)
-            .build()
-    );
+    execute(SendMessage.builder().chatId(chatId).text(text).replyMarkup(buttons).build());
   }
 
 
   private InlineKeyboardButton getInlineButton(String buttonName) {
-    return InlineKeyboardButton.builder()
-        .text(buttonName)
-        .callbackData(buttonName.split(" ")[1].toUpperCase())
+    return InlineKeyboardButton.builder().text(buttonName)
+        .callbackData(buttonName.split(" ")[1].toUpperCase()).build();
+  }
+
+  private ReplyKeyboardMarkup getReplyKeyboardMarkup(Boolean selective, Boolean resizeKeyboard,
+      Boolean oneTimeKeyboard, List<KeyboardRow> keyboard) {
+    return ReplyKeyboardMarkup.builder()
+        .selective(selective)
+        .resizeKeyboard(resizeKeyboard)
+        .oneTimeKeyboard(oneTimeKeyboard)
+        .keyboard(keyboard)
         .build();
   }
 
-//  private KeyboardButton getButton(String buttonName) {
-//
-//  }
+  private KeyboardButton getButton(String buttonName, Boolean requestContract) {
+    return KeyboardButton.builder().text(buttonName).requestContact(requestContract).build();
+  }
 }

@@ -2,7 +2,10 @@ package com.juke;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Stream;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 public class Test {
 
@@ -21,7 +24,7 @@ public class Test {
         new Message(9L, 12L, 0L), //21
         new Message(8L, 8L, 4L), //20
 
-        new Message(5L, 6L, 6L), //17
+        new Message(0L, 0L, 6L), //17
         new Message(1L, 7L, 8L), //16
         new Message(9L, 2L, 6L), //17
         new Message(10L, 11L, 2L), //23
@@ -31,50 +34,33 @@ public class Test {
         new Message(10L, 12L, 5L), //27
         new Message(0L, 6L, 3L), //9
         new Message(13L, 2L, 1L), //16
-        new Message(12L, 0L, 4L) //16
+        new Message(20L, 20L, 20L) //16
     );
-
-    List<Long> topTenMessage = list.stream().map(x -> x.getPoint1() + x.getPoint2() + x.getPoint3()).sorted(Comparator.reverseOrder()).limit(10).toList();
-
-    for (Long message : topTenMessage) {
+    List<Message> top10Messages = list.stream()
+        .sorted((o1, o2) -> {
+          Long x = o1.getPoint1() + o1.getPoint2() + o1.getPoint3();
+          Long y = o2.getPoint1() + o2.getPoint2() + o2.getPoint3();
+          return y.compareTo(x);
+        })
+        .limit(5)
+        .toList();
+    for (Message message : top10Messages) {
       System.out.println(message);
     }
   }
 }
 
+@Setter
+@Getter
+@AllArgsConstructor
 class Message {
 
   private Long point1;
   private Long point2;
   private Long point3;
 
-  public Message(Long point1, Long point2, Long point3) {
-    this.point1 = point1;
-    this.point2 = point2;
-    this.point3 = point3;
-  }
-
-  public Long getPoint1() {
-    return point1;
-  }
-
-  public void setPoint1(Long point1) {
-    this.point1 = point1;
-  }
-
-  public Long getPoint2() {
-    return point2;
-  }
-
-  public void setPoint2(Long point2) {
-    this.point2 = point2;
-  }
-
-  public Long getPoint3() {
-    return point3;
-  }
-
-  public void setPoint3(Long point3) {
-    this.point3 = point3;
+  @Override
+  public String toString() {
+    return "Message {" + point1 + ", " + point2 + ", " + point3 + "} = " + (point1 + point2 + point3);
   }
 }
