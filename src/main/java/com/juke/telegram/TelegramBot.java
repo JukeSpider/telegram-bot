@@ -81,7 +81,9 @@ public class TelegramBot extends TelegramLongPollingBot {
       return;
     }
 
-    handleTextMessage(message);
+    if (message.hasText()) {
+      catchTextMessage(message);
+    }
   }
 
   private void dataCollectionAgreement(Message message) {
@@ -117,51 +119,58 @@ public class TelegramBot extends TelegramLongPollingBot {
       return;
     }
 
-    PlayerDto registrationDto = PlayerDto.builder().telegramId(contact.getUserId())
-        .userName(message.getChat().getUserName()).phone(contact.getPhoneNumber()).build();
+    PlayerDto registrationDto = PlayerDto.builder()
+        .telegramId(contact.getUserId())
+        .userName(message.getChat().getUserName())
+        .phone(contact.getPhoneNumber())
+        .build();
 
     service.save(registrationDto);
-
     executeSendMessage(message.getChatId().toString(), "Регистрация прошла успешно!");
-
     startMethod(message);
   }
 
   @SneakyThrows
-  private void handleTextMessage(Message message) {
-    if (message.hasText() && message.hasEntities()) {
+  private void catchTextMessage(Message message) {
+
+    if (message.hasEntities()) {
       commandMethod(message);
-    } else {
-      switch (message.getText()) {
-        case DENIED:
-          executeSendMessage(message.getChatId().toString(),
-              "К сожалению, без согласия на обработку персональных данных, "
-                  + "вы не сможете пользоваться ботом.");
-          break;
+      return;
+    }
 
-        case TASK:
-          taskMethod(message);
-          break;
+    switch (message.getText()) {
+      case DENIED:
+        executeSendMessage(message.getChatId().toString(),
+            "К сожалению, без согласия на обработку персональных данных, "
+                + "вы не сможете пользоваться ботом.");
+        break;
 
-        case LEADER:
-          leaderMethod(message);
-          break;
+      case TASK:
+        taskMethod(message);
+        break;
 
-        case ABOUT:
+      case LEADER:
+        leaderMethod(message);
+        break;
+
+      case ABOUT:
 //          aboutMethod(message);
-          break;
-      }
+        break;
     }
   }
 
   private void leaderMethod(Message message) {
 
-    List<PlayerDto> topPlayerList = service.findAll().stream().sorted((o1, o2) -> {
-      Long x = o1.getJavaScore() + o1.getPythonScore() + o1.getDataScore();
-      Long y = o2.getJavaScore() + o1.getPythonScore() + o1.getDataScore();
-      return y.compareTo(x);
-    }).limit(10).toList();
+    List<PlayerDto> topPlayerList = service.findAll().stream()
+        .sorted((o1, o2) -> {
+          Long x = o1.getJavaScore() + o1.getPythonScore() + o1.getDataScore();
+          Long y = o2.getJavaScore() + o1.getPythonScore() + o1.getDataScore();
+          return y.compareTo(x);
+        })
+        .limit(10)
+        .toList();
 
+    //TODO: переделать блок кода для нормального для нормального вывода списка лидеров;
     for (PlayerDto player : topPlayerList) {
       executeSendMessage(message.getChatId().toString(),
           player.getUserName() + " " + (player.getJavaScore() + player.getPythonScore()
@@ -177,7 +186,7 @@ public class TelegramBot extends TelegramLongPollingBot {
       String command = message.getText()
           .substring(commandEntity.get().getOffset(), commandEntity.get().getLength());
 
-      //leave switch construction for possible additional commands
+      //TODO: пока оставить блок SWITCH, возможно появятся новые команды;
       switch (command) {
         case "/start":
           startMethod(message);
@@ -192,22 +201,22 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     switch (callbackQuery.getData()) {
 
-      case "JAVA":
-        //TODO: create javaMethod();
+      case JAVA:
+        //TODO: создать javaMethod();
         executeSendMessage(message.getChatId().toString(), "You have chosen Java!");
         break;
 
-      case "PYTHON":
-        //TODO: create pythonMethod();
+      case GO:
+        //TODO: создать pythonMethod();
         executeSendMessage(message.getChatId().toString(), "You have chosen Python!");
         break;
 
-      case "DATA":
-        //TODO: create dataMethod();
+      case DATA:
+        //TODO: создать dataMethod();
         executeSendMessage(message.getChatId().toString(), "You have chosen Data!");
         break;
 
-      case "BACK":
+      case BACK:
         startMethod(message);
         break;
     }
@@ -228,7 +237,6 @@ public class TelegramBot extends TelegramLongPollingBot {
   private void startMethod(Message message) {
 
     KeyboardRow firstLine = new KeyboardRow();
-
     firstLine.add(TASK);
     firstLine.add(LEADER);
     firstLine.add(ABOUT);
@@ -237,29 +245,41 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     executeSendMessage(message.getChatId().toString(),
         "\uD83D\uDCF1 Добро пожаловать в GiveMeTask бот!",
-        ReplyKeyboardMarkup.builder().selective(true).resizeKeyboard(true).oneTimeKeyboard(true)
-            .keyboard(keyboard).build());
+        getReplyKeyboardMarkup(true, true, true, keyboard));
   }
 
   @SneakyThrows
   private void executeSendMessage(String chatId, String text) {
-    execute(SendMessage.builder().chatId(chatId).text(text).build());
+    execute(SendMessage.builder()
+        .chatId(chatId)
+        .text(text)
+        .build());
   }
 
   @SneakyThrows
   private void executeSendMessage(String chatId, String text, InlineKeyboardMarkup buttons) {
-    execute(SendMessage.builder().chatId(chatId).text(text).replyMarkup(buttons).build());
+    execute(SendMessage.builder()
+        .chatId(chatId)
+        .text(text)
+        .replyMarkup(buttons)
+        .build());
   }
 
   @SneakyThrows
   private void executeSendMessage(String chatId, String text, ReplyKeyboardMarkup buttons) {
-    execute(SendMessage.builder().chatId(chatId).text(text).replyMarkup(buttons).build());
+    execute(SendMessage.builder()
+        .chatId(chatId)
+        .text(text)
+        .replyMarkup(buttons)
+        .build());
   }
 
 
   private InlineKeyboardButton getInlineButton(String buttonName) {
-    return InlineKeyboardButton.builder().text(buttonName)
-        .callbackData(buttonName.split(" ")[1].toUpperCase()).build();
+    return InlineKeyboardButton.builder()
+        .text(buttonName)
+        .callbackData(buttonName.split(" ")[1].toUpperCase())
+        .build();
   }
 
   private ReplyKeyboardMarkup getReplyKeyboardMarkup(Boolean selective, Boolean resizeKeyboard,
@@ -273,6 +293,9 @@ public class TelegramBot extends TelegramLongPollingBot {
   }
 
   private KeyboardButton getButton(String buttonName, Boolean requestContract) {
-    return KeyboardButton.builder().text(buttonName).requestContact(requestContract).build();
+    return KeyboardButton.builder()
+        .text(buttonName)
+        .requestContact(requestContract)
+        .build();
   }
 }
