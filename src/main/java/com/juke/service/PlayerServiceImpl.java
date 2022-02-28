@@ -38,7 +38,7 @@ public class PlayerServiceImpl implements IPlayerService {
     entity.setCreatedAt(LocalDateTime.now());
     entity.setUpdatedAt(LocalDateTime.now());
     entity.setJavaScore(0L);
-    entity.setPythonScore(0L);
+    entity.setGoScore(0L);
     entity.setDataScore(0L);
     repository.save(entity);
     return mapper.mapToDto(entity);

@@ -3,16 +3,10 @@ W
 'src/main/java/com/juke/dto/TaskDto.java,c\6\c6162cba4889943d7d30198a81aa602c3dd5b2ba
 ^
 .src/main/java/com/juke/mapper/ITaskMapper.java,2\2\2223f074fd3cad63091146fc57c5148568abd18b
-]
--src/main/java/com/juke/entity/TaskEntity.java,b\b\bb04bf0d85d05711de08bb9b26ca02b2e8e34782
 f
 6src/main/java/com/juke/repository/ITaskRepository.java,3\2\3240269c330866449eb5c5d3c00dbf5920aa4c05
 `
 0src/main/java/com/juke/service/ITaskService.java,2\9\2979ceab62b7d20895f4644b5c7b4a6b2e3465ae
-_
-/src/main/java/com/juke/entity/PlayerEntity.java,1\7\1757b28c62a44ac466c5de225ebc26d53b010fe5
-]
--src/main/java/com/juke/entity/BaseEntity.java,e\7\e7630aa5c169089fdbd9dcba17b42a3a5bf5adee
 ^
 .src/main/java/com/juke/mapper/IBaseMapper.java,f\a\fa494bc4951c9ebcb080742dd9160bcb1a28573e
 `
@@ -21,8 +15,6 @@ W
 'src/main/java/com/juke/dto/BaseDto.java,3\5\35b299290c185ba9b0896a685fe3c1fc4eefbc14
 g
 7src/main/java/com/juke/controller/PlayerController.java,7\d\7d67078700fc4b5b3a521c7d8d3dab3df0ebeab7
-e
-5src/main/java/com/juke/service/PlayerServiceImpl.java,4\2\4257c58c33faff3a33cb48e60dee66a720ba97a7
 b
 2src/main/java/com/juke/service/IPlayerService.java,e\7\e79feb5c2047be646ec814bb2ceb1e3df5716f95
 h
@@ -35,3 +27,7 @@ C
 pom.xml,4\4\442292b8a7efeabbe4cc176709b833b1792140ec
 e
 5src/main/java/com/juke/controller/TaskController.java,c\0\c03ee8739df8b925653df82ac4789c369bdbea22
+b
+2src/main/java/com/juke/TelegramBotApplication.java,4\2\42e3a83b56d8493f1da37e8c64a759b182afa770
+c
+3src/main/java/com/juke/service/TaskServiceImpl.java,8\6\8608247dd7ca3c4ea735bdf0b277d1bd3ea6bbde

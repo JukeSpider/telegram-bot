@@ -18,13 +18,13 @@ public class PlayerEntity extends BaseEntity {
 
   @Builder
   public PlayerEntity(Long id, LocalDateTime createdAt, LocalDateTime updatedAt, Long telegramId,
-      String userName, String phone, Long javaScore, Long pythonScore, Long dataScore) {
+      String userName, String phone, Long javaScore, Long goScore, Long dataScore) {
     super(id, createdAt, updatedAt);
     this.telegramId = telegramId;
     this.userName = userName;
     this.phone = phone;
     this.javaScore = javaScore;
-    this.pythonScore = pythonScore;
+    this.goScore = goScore;
     this.dataScore = dataScore;
   }
 
@@ -41,7 +41,7 @@ public class PlayerEntity extends BaseEntity {
   private Long javaScore;
 
   @Column(name = "python_score")
-  private Long pythonScore;
+  private Long goScore;
 
   @Column(name = "data_score")
   private Long dataScore;

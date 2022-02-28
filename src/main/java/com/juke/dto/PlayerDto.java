@@ -14,13 +14,13 @@ public class PlayerDto extends BaseDto {
 
   @Builder
   public PlayerDto(Long id, LocalDateTime createdAt, LocalDateTime updatedAt, Long telegramId,
-      String userName, String phone, Long javaScore, Long pythonScore, Long dataScore) {
+      String userName, String phone, Long javaScore, Long goScore, Long dataScore) {
     super(id, createdAt, updatedAt);
     this.telegramId = telegramId;
     this.userName = userName;
     this.phone = phone;
     this.javaScore = javaScore;
-    this.pythonScore = pythonScore;
+    this.goScore = goScore;
     this.dataScore = dataScore;
   }
 
@@ -32,16 +32,11 @@ public class PlayerDto extends BaseDto {
 
   private Long javaScore;
 
-  private Long pythonScore;
+  private Long goScore;
 
   private Long dataScore;
 
-  @Override
-  public String toString() {
-    return "username: " + userName +
-        "\n phone: " + userName +
-        "\n java score: " + javaScore +
-        "\n python score: " + pythonScore +
-        "\n data score:" + dataScore;
+  public Long getTotalScore() {
+    return javaScore + goScore + dataScore;
   }
 }

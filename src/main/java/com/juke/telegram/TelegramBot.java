@@ -1,18 +1,21 @@
 package com.juke.telegram;
 
-import static com.juke.telegram.VarConstant.ABOUT;
 import static com.juke.telegram.VarConstant.ACCEPT;
 import static com.juke.telegram.VarConstant.BACK;
 import static com.juke.telegram.VarConstant.BOT_COMMAND;
 import static com.juke.telegram.VarConstant.DATA;
-import static com.juke.telegram.VarConstant.DENIED;
+import static com.juke.telegram.VarConstant.DAY_NUMBER;
+import static com.juke.telegram.VarConstant.DECLINE;
 import static com.juke.telegram.VarConstant.GO;
 import static com.juke.telegram.VarConstant.JAVA;
 import static com.juke.telegram.VarConstant.LEADER;
+import static com.juke.telegram.VarConstant.PROFILE;
 import static com.juke.telegram.VarConstant.TASK;
 
 import com.juke.dto.PlayerDto;
 import com.juke.service.PlayerServiceImpl;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +40,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
   private static final String TOKEN = System.getenv("TOKEN");
   private static final String BOT_USERNAME = System.getenv("BOT_USERNAME");
+  private static final LocalDate START_DATE = LocalDate.parse(System.getenv("START_DATE"));
 
   private final PlayerServiceImpl service;
 
@@ -92,7 +96,7 @@ public class TelegramBot extends TelegramLongPollingBot {
       return;
     }
 
-    if (message.getText().equals(DENIED)) {
+    if (message.getText().equals(DECLINE)) {
       executeSendMessage(message.getChatId().toString(),
           "К сожалению, без согласия на обработку персональных "
               + "данных, вы не сможете пользоваться ботом.");
@@ -101,7 +105,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     KeyboardRow firstRow = new KeyboardRow();
     firstRow.add(getButton(ACCEPT, true));
-    firstRow.add(getButton(DENIED, false));
+    firstRow.add(getButton(DECLINE, false));
 
     List<KeyboardRow> keyboard = List.of(firstRow);
 
@@ -119,18 +123,14 @@ public class TelegramBot extends TelegramLongPollingBot {
       return;
     }
 
-    PlayerDto registrationDto = PlayerDto.builder()
-        .telegramId(contact.getUserId())
-        .userName(message.getChat().getUserName())
-        .phone(contact.getPhoneNumber())
-        .build();
+    PlayerDto registrationDto = PlayerDto.builder().telegramId(contact.getUserId())
+        .userName(message.getChat().getUserName()).phone(contact.getPhoneNumber()).build();
 
     service.save(registrationDto);
     executeSendMessage(message.getChatId().toString(), "Регистрация прошла успешно!");
     startMethod(message);
   }
 
-  @SneakyThrows
   private void catchTextMessage(Message message) {
 
     if (message.hasEntities()) {
@@ -139,7 +139,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     switch (message.getText()) {
-      case DENIED:
+      case DECLINE:
         executeSendMessage(message.getChatId().toString(),
             "К сожалению, без согласия на обработку персональных данных, "
                 + "вы не сможете пользоваться ботом.");
@@ -149,31 +149,54 @@ public class TelegramBot extends TelegramLongPollingBot {
         taskMethod(message);
         break;
 
-      case LEADER:
-        leaderMethod(message);
+      case PROFILE:
+        profileMethod(message);
         break;
 
-      case ABOUT:
-//          aboutMethod(message);
+      case LEADER:
+        leaderMethod(message);
         break;
     }
   }
 
+  private void taskMethod(Message message) {
+    List<List<InlineKeyboardButton>> buttons = List.of(
+        List.of(getInlineButton(JAVA), getInlineButton(GO), getInlineButton(DATA)),
+        List.of(getInlineButton(BACK)));
+
+    executeSendMessage(message.getChatId().toString(),
+        "Пожалуйста, выберите свой язык программирования:",
+        InlineKeyboardMarkup.builder().keyboard(buttons).build());
+  }
+
+  private void profileMethod(Message message) {
+    PlayerDto player = service.findByTelegramId(message.getChatId());
+
+    String playerProfile = String.format("""
+            • Username: %s
+            • Phone: %s
+            • Total points: %d
+              - Java: %d
+              - Go: %d
+              - Data: %d
+            """, player.getUserName(), player.getPhone(), player.getTotalScore(), player.getJavaScore(),
+        player.getGoScore(), player.getDataScore());
+
+    executeSendMessage(message.getChatId().toString(), playerProfile);
+  }
+
   private void leaderMethod(Message message) {
 
-    List<PlayerDto> topPlayerList = service.findAll().stream()
-        .sorted((o1, o2) -> {
-          Long x = o1.getJavaScore() + o1.getPythonScore() + o1.getDataScore();
-          Long y = o2.getJavaScore() + o1.getPythonScore() + o1.getDataScore();
-          return y.compareTo(x);
-        })
-        .limit(10)
-        .toList();
+    List<PlayerDto> topPlayerList = service.findAll().stream().sorted((o1, o2) -> {
+      Long x = o1.getJavaScore() + o1.getGoScore() + o1.getDataScore();
+      Long y = o2.getJavaScore() + o1.getGoScore() + o1.getDataScore();
+      return y.compareTo(x);
+    }).limit(10).toList();
 
     //TODO: переделать блок кода для нормального для нормального вывода списка лидеров;
     for (PlayerDto player : topPlayerList) {
       executeSendMessage(message.getChatId().toString(),
-          player.getUserName() + " " + (player.getJavaScore() + player.getPythonScore()
+          player.getUserName() + " " + (player.getJavaScore() + player.getGoScore()
               + player.getDataScore()));
     }
   }
@@ -199,21 +222,23 @@ public class TelegramBot extends TelegramLongPollingBot {
   private void catchCallbackQuery(CallbackQuery callbackQuery) {
     Message message = callbackQuery.getMessage();
 
+    if (!service.hasTelegramId(message.getChatId())) {
+      dataCollectionAgreement(message);
+      return;
+    }
+
     switch (callbackQuery.getData()) {
 
       case JAVA:
-        //TODO: создать javaMethod();
-        executeSendMessage(message.getChatId().toString(), "You have chosen Java!");
+        getTask(message, JAVA);
         break;
 
       case GO:
-        //TODO: создать pythonMethod();
-        executeSendMessage(message.getChatId().toString(), "You have chosen Python!");
+        getTask(message, GO);
         break;
 
       case DATA:
-        //TODO: создать dataMethod();
-        executeSendMessage(message.getChatId().toString(), "You have chosen Data!");
+        getTask(message, DATA);
         break;
 
       case BACK:
@@ -222,15 +247,30 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
   }
 
-  @SneakyThrows
-  private void taskMethod(Message message) {
-    List<List<InlineKeyboardButton>> buttons = List.of(
-        List.of(getInlineButton(JAVA), getInlineButton(GO), getInlineButton(DATA)),
-        List.of(getInlineButton(BACK))
-    );
+  private void getTask(Message message, String language) {
+    int taskDays = getTaskDays();
+    List<List<InlineKeyboardButton>> buttons = new ArrayList<>();
 
-    executeSendMessage(message.getChatId().toString(),
-        "Пожалуйста, выберите свой язык программирования:",
+    for (int i = 1; i < taskDays; i += 2) {
+      buttons.add(
+          List.of(
+              getInlineButton(String.format("%s. %s%d", language, DAY_NUMBER, i)),
+              getInlineButton(String.format("%s. %s%d", language, DAY_NUMBER, i + 1))
+          )
+      );
+    }
+
+    if (taskDays % 2 != 0) {
+      buttons.add(
+          List.of(
+              getInlineButton(String.format("%s. %s%d", language, DAY_NUMBER, taskDays))
+          )
+      );
+    }
+
+    buttons.add(List.of(getInlineButton(BACK)));
+
+    executeSendMessage(message.getChatId().toString(), "Выберите день:",
         InlineKeyboardMarkup.builder().keyboard(buttons).build());
   }
 
@@ -239,7 +279,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     KeyboardRow firstLine = new KeyboardRow();
     firstLine.add(TASK);
     firstLine.add(LEADER);
-    firstLine.add(ABOUT);
+    firstLine.add(PROFILE);
 
     List<KeyboardRow> keyboard = List.of(firstLine);
 
@@ -274,11 +314,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         .build());
   }
 
-
-  private InlineKeyboardButton getInlineButton(String buttonName) {
+  private InlineKeyboardButton getInlineButton(String text) {
     return InlineKeyboardButton.builder()
-        .text(buttonName)
-        .callbackData(buttonName.split(" ")[1].toUpperCase())
+        .text(text)
+        .callbackData(text)
         .build();
   }
 
@@ -297,5 +336,15 @@ public class TelegramBot extends TelegramLongPollingBot {
         .text(buttonName)
         .requestContact(requestContract)
         .build();
+  }
+
+  private int getTaskDays() {
+    LocalDate localDate = LocalDate.now();
+
+    if (localDate.getDayOfYear() - START_DATE.getDayOfYear() + 1 <= 0) {
+      return localDate.getDayOfYear() + START_DATE.lengthOfYear() - START_DATE.getDayOfYear() + 1;
+    }
+
+    return localDate.getDayOfYear() - START_DATE.getDayOfYear() + 1;
   }
 }
