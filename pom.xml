@@ -11,50 +11,63 @@
   <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.plugin>3.8.0</maven.compiler.plugin>
+    <spring.boot.starter>2.6.3</spring.boot.starter>
+    <mapstruct>1.4.2.Final</mapstruct>
+    <postgresql>42.3.3</postgresql>
+    <common.csv>1.9.0</common.csv>
+    <telegram>5.7.1</telegram>
+    <lombok>1.18.22</lombok>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.telegram</groupId>
       <artifactId>telegrambots-spring-boot-starter</artifactId>
-      <version>5.7.1</version>
+      <version>${telegram}</version>
     </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
-      <version>2.6.3</version>
+      <version>${spring.boot.starter}</version>
     </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
-      <version>2.6.3</version>
+      <version>${spring.boot.starter}</version>
     </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
-      <version>2.6.3</version>
+      <version>${spring.boot.starter}</version>
     </dependency>
 
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <version>1.18.22</version>
+      <version>${lombok}</version>
     </dependency>
 
     <dependency>
       <groupId>org.mapstruct</groupId>
       <artifactId>mapstruct</artifactId>
-      <version>1.4.2.Final</version>
+      <version>${mapstruct}</version>
     </dependency>
 
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.3.2</version>
+      <version>${postgresql}</version>
       <scope>runtime</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-csv</artifactId>
+      <version>${common.csv}</version>
     </dependency>
   </dependencies>
 
@@ -63,13 +76,13 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
-        <version>2.6.3</version>
+        <version>${spring.boot.starter}</version>
       </plugin>
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.0</version>
+        <version>${maven.compiler.plugin}</version>
         <configuration>
           <source>${maven.compiler.source}</source>
           <target>${maven.compiler.target}</target>
@@ -77,12 +90,12 @@
             <path>
               <groupId>org.projectlombok</groupId>
               <artifactId>lombok</artifactId>
-              <version>1.18.22</version>
+              <version>${lombok}</version>
             </path>
             <path>
               <groupId>org.mapstruct</groupId>
               <artifactId>mapstruct-processor</artifactId>
-              <version>1.4.2.Final</version>
+              <version>${mapstruct}</version>
             </path>
           </annotationProcessorPaths>
         </configuration>

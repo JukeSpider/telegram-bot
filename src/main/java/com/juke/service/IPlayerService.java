@@ -5,13 +5,9 @@ import java.util.List;
 
 public interface IPlayerService {
 
-  PlayerDto findByUsername(String username);
-
   List<PlayerDto> findAll();
 
-  void deleteByUsername(String username);
-
-  PlayerDto save(PlayerDto dto);
+  PlayerDto save(PlayerDto dto, boolean isAdmin);
 
   PlayerDto findByTelegramId(Long telegramId);
 

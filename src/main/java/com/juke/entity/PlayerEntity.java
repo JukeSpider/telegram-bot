@@ -17,9 +17,11 @@ import lombok.Setter;
 public class PlayerEntity extends BaseEntity {
 
   @Builder
-  public PlayerEntity(Long id, LocalDateTime createdAt, LocalDateTime updatedAt, Long telegramId,
-      String userName, String phone, Long javaScore, Long goScore, Long dataScore) {
+  public PlayerEntity(Long id, LocalDateTime createdAt, LocalDateTime updatedAt, boolean admin,
+      Long telegramId, String userName, String phone, Long javaScore, Long goScore,
+      Long dataScore) {
     super(id, createdAt, updatedAt);
+    this.admin = admin;
     this.telegramId = telegramId;
     this.userName = userName;
     this.phone = phone;
@@ -27,6 +29,9 @@ public class PlayerEntity extends BaseEntity {
     this.goScore = goScore;
     this.dataScore = dataScore;
   }
+
+  @Column(name = "admin")
+  private boolean admin;
 
   @Column(name = "telegram_id", nullable = false)
   private Long telegramId;

@@ -13,8 +13,19 @@ public class VarConstant {
   public static final String LEADER = "\uD83C\uDFC6 Leader";
   public static final String BOT_COMMAND = "bot_command";
   public static final String DAY_NUMBER = "\uD83D\uDDD3 Day №";
+  public static final String PLAYER_LIST = "\uD83D\uDCD4 Player list";
+  public static final String CSV_NAME = "./players.csv";
+
+  public static final String[] HEADERS = {
+      "id",
+      "username",
+      "phone",
+      "java",
+      "go",
+      "data",
+      "total"
+  };
 
   private VarConstant() {
-
   }
 }

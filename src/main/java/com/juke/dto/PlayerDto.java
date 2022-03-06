@@ -13,9 +13,11 @@ import lombok.Setter;
 public class PlayerDto extends BaseDto {
 
   @Builder
-  public PlayerDto(Long id, LocalDateTime createdAt, LocalDateTime updatedAt, Long telegramId,
-      String userName, String phone, Long javaScore, Long goScore, Long dataScore) {
+  public PlayerDto(Long id, LocalDateTime createdAt, LocalDateTime updatedAt, boolean admin,
+      Long telegramId, String userName, String phone, Long javaScore, Long goScore,
+      Long dataScore) {
     super(id, createdAt, updatedAt);
+    this.admin = admin;
     this.telegramId = telegramId;
     this.userName = userName;
     this.phone = phone;
@@ -23,6 +25,8 @@ public class PlayerDto extends BaseDto {
     this.goScore = goScore;
     this.dataScore = dataScore;
   }
+
+  private boolean admin;
 
   private Long telegramId;
 

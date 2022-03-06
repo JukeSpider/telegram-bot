@@ -3,23 +3,29 @@ package com.juke.telegram;
 import static com.juke.telegram.VarConstant.ACCEPT;
 import static com.juke.telegram.VarConstant.BACK;
 import static com.juke.telegram.VarConstant.BOT_COMMAND;
+import static com.juke.telegram.VarConstant.CSV_NAME;
 import static com.juke.telegram.VarConstant.DATA;
 import static com.juke.telegram.VarConstant.DAY_NUMBER;
 import static com.juke.telegram.VarConstant.DECLINE;
 import static com.juke.telegram.VarConstant.GO;
+import static com.juke.telegram.VarConstant.HEADERS;
 import static com.juke.telegram.VarConstant.JAVA;
 import static com.juke.telegram.VarConstant.LEADER;
+import static com.juke.telegram.VarConstant.PLAYER_LIST;
 import static com.juke.telegram.VarConstant.PROFILE;
 import static com.juke.telegram.VarConstant.TASK;
 
 import com.juke.dto.PlayerDto;
 import com.juke.service.PlayerServiceImpl;
+import java.io.FileWriter;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -40,7 +46,8 @@ public class TelegramBot extends TelegramLongPollingBot {
 
   private static final String TOKEN = System.getenv("TOKEN");
   private static final String BOT_USERNAME = System.getenv("BOT_USERNAME");
-  private static final LocalDate START_DATE = LocalDate.parse(System.getenv("START_DATE"));
+  private static final String ADMIN = System.getenv("ADMIN");
+  private static final LocalDate START_DATE = LocalDate.parse("2022-02-20");
 
   private final PlayerServiceImpl service;
 
@@ -123,11 +130,25 @@ public class TelegramBot extends TelegramLongPollingBot {
       return;
     }
 
-    PlayerDto registrationDto = PlayerDto.builder().telegramId(contact.getUserId())
-        .userName(message.getChat().getUserName()).phone(contact.getPhoneNumber()).build();
+    PlayerDto registrationDto = PlayerDto.builder()
+        .telegramId(contact.getUserId())
+        .userName(message.getChat().getUserName())
+        .phone(phoneConverter(contact.getPhoneNumber()))
+        .build();
 
-    service.save(registrationDto);
-    executeSendMessage(message.getChatId().toString(), "Регистрация прошла успешно!");
+    if (phoneConverter(contact.getPhoneNumber()).equals(ADMIN)) {
+      service.save(registrationDto, true);
+      executeSendMessage(message.getChatId().toString(),
+          """
+              Регистрация прошла успешно!
+              Вы являетесь администратором.
+              Вам доступны дополнительные функции.
+              """);
+    } else {
+      service.save(registrationDto, false);
+      executeSendMessage(message.getChatId().toString(), "Регистрация прошла успешно!");
+    }
+
     startMethod(message);
   }
 
@@ -244,8 +265,13 @@ public class TelegramBot extends TelegramLongPollingBot {
       case BACK:
         startMethod(message);
         break;
+
+      case PLAYER_LIST:
+        getPlayerList(message);
+        break;
     }
   }
+
 
   private void getTask(Message message, String language) {
     int taskDays = getTaskDays();
@@ -281,7 +307,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     firstLine.add(LEADER);
     firstLine.add(PROFILE);
 
-    List<KeyboardRow> keyboard = List.of(firstLine);
+    List<KeyboardRow> keyboard = new ArrayList<>();
+    keyboard.add(firstLine);
+
+    if (service.findByTelegramId(message.getChatId()).isAdmin()) {
+      KeyboardRow secondLine = new KeyboardRow();
+      secondLine.add(PLAYER_LIST);
+      keyboard.add(secondLine);
+    }
 
     executeSendMessage(message.getChatId().toString(),
         "\uD83D\uDCF1 Добро пожаловать в GiveMeTask бот!",
@@ -346,5 +379,30 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     return localDate.getDayOfYear() - START_DATE.getDayOfYear() + 1;
+  }
+
+  private String phoneConverter(String phoneNumber) {
+
+    if (phoneNumber.toCharArray()[0] == '7') {
+      phoneNumber = phoneNumber.replaceFirst("7", "8");
+    }
+
+    return phoneNumber.replaceAll(" ", "")
+        .replaceAll("\\+7", "8")
+        .replaceAll("\\(", "")
+        .replaceAll("\\)", "")
+        .replaceAll("-", "");
+  }
+
+  @SneakyThrows
+  private void getPlayerList(Message message) {
+
+    try (CSVPrinter printer = new CSVPrinter(new FileWriter(CSV_NAME), CSVFormat.EXCEL)) {
+      printer.printRecord((Object) HEADERS);
+      printer.printRecord("1", "juke", "88005553535", "0", "12", "22", "34");
+      printer.printRecord("2", "pavuk", "88618552210", "15", "1", "1", "17");
+      printer.printRecord("3", "pipka", "88005684133", "0", "0", "4", "4");
+      printer.printRecord("4", "ghamin", "88003551125", "11", "22", "33", "66");
+    }
   }
 }
